@@ -1,0 +1,32 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}GoBOT{% endblock %} · Service Requests</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="{% url 'requests_app:list' %}">🤖 GoBOT</a>
+    <nav>
+      {% if user.is_authenticated %}
+        <a href="{% url 'requests_app:list' %}">Requests</a>
+        <a href="{% url 'requests_app:create' %}">New request</a>
+        <a href="{% url 'notifications:list' %}">Notifications{% if unread_count %} <span class="badge">{{ unread_count }}</span>{% endif %}</a>
+        {% if user.is_staff %}<a href="{% url 'admin:index' %}">Admin</a>{% endif %}
+        <form method="post" action="{% url 'logout' %}" class="inline">{% csrf_token %}<button type="submit" class="link">Log out ({{ user.username }})</button></form>
+      {% else %}
+        <a href="{% url 'login' %}">Log in</a>
+        <a href="{% url 'signup' %}">Sign up</a>
+      {% endif %}
+    </nav>
+  </header>
+
+  <main class="container">
+    {% for message in messages %}<div class="flash {{ message.tags }}">{{ message }}</div>{% endfor %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

@@ -1,0 +1,19 @@
+@startuml
+actor Customer
+participant "requests_app.views" as V
+participant "ai.triage" as AI
+database DB
+participant "notifications.services" as N
+actor Agent
+
+Customer -> V : POST /requests/new/
+V -> AI : triage(title, description)
+AI --> V : category, priority, summary
+V -> DB : save ServiceRequest
+V -> N : notify_many(agents)
+N -> DB : insert Notifications
+V --> Customer : redirect to detail
+Agent -> V : POST update (status, assignee)
+V -> DB : save
+V -> N : notify(requester)
+@enduml

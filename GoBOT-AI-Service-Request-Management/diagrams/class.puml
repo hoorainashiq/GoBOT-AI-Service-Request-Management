@@ -1,0 +1,38 @@
+@startuml
+class User {
+  username
+  email
+  role : customer|agent|admin
+  phone
+  is_agent()
+}
+class ServiceRequest {
+  title
+  description
+  category
+  priority
+  status
+  ai_summary
+  created_at
+  updated_at
+}
+class Comment {
+  body
+  created_at
+}
+class Notification {
+  message
+  link
+  is_read
+  created_at
+}
+class TriageService <<ai.triage>> {
+  triage(title, description)
+}
+User "1" -- "*" ServiceRequest : requester
+User "0..1" -- "*" ServiceRequest : assigned_to
+ServiceRequest "1" *-- "*" Comment
+User "1" -- "*" Comment : author
+User "1" -- "*" Notification
+ServiceRequest ..> TriageService : uses
+@enduml

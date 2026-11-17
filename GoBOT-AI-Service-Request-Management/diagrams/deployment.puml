@@ -1,0 +1,14 @@
+@startuml
+node "Client" {
+  [Web Browser]
+}
+node "App Server" {
+  [Gunicorn + Django (WSGI)]
+  [WhiteNoise (static files)]
+}
+node "Database Server" {
+  database "PostgreSQL / SQLite"
+}
+[Web Browser] --> [Gunicorn + Django (WSGI)] : HTTPS
+[Gunicorn + Django (WSGI)] --> "PostgreSQL / SQLite" : SQL
+@enduml

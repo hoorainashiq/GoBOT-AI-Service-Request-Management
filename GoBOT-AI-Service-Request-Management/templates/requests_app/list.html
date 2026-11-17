@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Requests{% endblock %}
+{% block content %}
+<div class="row">
+  <h1>{% if user.is_agent %}All requests{% else %}My requests{% endif %}</h1>
+  <a class="btn" href="{% url 'requests_app:create' %}">+ New request</a>
+</div>
+
+<form method="get" class="filters">
+  <label>Status
+    <select name="status" onchange="this.form.submit()">
+      <option value="">All</option>
+      {% for value, label in status_choices %}
+        <option value="{{ value }}" {% if value == current_status %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+</form>
+
+<table class="table">
+  <thead><tr><th>#</th><th>Title</th><th>Category</th><th>Priority</th><th>Status</th><th>Requester</th><th>Assigned</th><th>Created</th></tr></thead>
+  <tbody>
+  {% for r in requests %}
+    <tr>
+      <td>{{ r.pk }}</td>
+      <td><a href="{{ r.get_absolute_url }}">{{ r.title }}</a></td>
+      <td>{{ r.get_category_display }}</td>
+      <td><span class="pill p-{{ r.priority }}">{{ r.get_priority_display }}</span></td>
+      <td><span class="pill s-{{ r.status }}">{{ r.get_status_display }}</span></td>
+      <td>{{ r.requester }}</td>
+      <td>{{ r.assigned_to|default:"—" }}</td>
+      <td>{{ r.created_at|date:"d M Y" }}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="8" class="muted">No requests yet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

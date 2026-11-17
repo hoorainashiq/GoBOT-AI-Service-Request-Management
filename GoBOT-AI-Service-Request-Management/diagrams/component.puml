@@ -1,0 +1,17 @@
+@startuml
+package "Django project (config)" {
+  [accounts] 
+  [requests_app]
+  [notifications]
+  [requests_app] ..> [notifications] : notify()
+  [requests_app] ..> [accounts] : User
+  [requests_app] --> [ai.py] : triage
+}
+[Templates & Static] <-- [requests_app]
+[Templates & Static] <-- [accounts]
+[Templates & Static] <-- [notifications]
+database "SQLite / PostgreSQL" as DB
+[accounts] --> DB
+[requests_app] --> DB
+[notifications] --> DB
+@enduml

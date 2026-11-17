@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}#{{ req.pk }} {{ req.title }}{% endblock %}
+{% block content %}
+<div class="row">
+  <h1>#{{ req.pk }} · {{ req.title }}</h1>
+  <span class="pill s-{{ req.status }}">{{ req.get_status_display }}</span>
+</div>
+
+<div class="grid">
+  <section class="card">
+    <h2>Description</h2>
+    <p>{{ req.description|linebreaksbr }}</p>
+    <dl class="meta">
+      <dt>Requester</dt><dd>{{ req.requester }}</dd>
+      <dt>Assigned to</dt><dd>{{ req.assigned_to|default:"Unassigned" }}</dd>
+      <dt>Category</dt><dd>{{ req.get_category_display }}</dd>
+      <dt>Priority</dt><dd><span class="pill p-{{ req.priority }}">{{ req.get_priority_display }}</span></dd>
+      <dt>Created</dt><dd>{{ req.created_at|date:"d M Y H:i" }}</dd>
+    </dl>
+    {% if req.ai_suggested %}
+      <p class="ai">🤖 <strong>GoBOT summary:</strong> {{ req.ai_summary }}</p>
+    {% endif %}
+  </section>
+
+  {% if update_form %}
+  <section class="card">
+    <h2>Manage (staff)</h2>
+    <form method="post">{% csrf_token %}
+      <input type="hidden" name="action" value="update">
+      {{ update_form.as_p }}
+      <button type="submit" class="btn">Save changes</button>
+    </form>
+  </section>
+  {% endif %}
+</div>
+
+<section class="card">
+  <h2>Conversation</h2>
+  {% for c in comments %}
+    <div class="comment">
+      <strong>{{ c.author }}</strong> <span class="muted">{{ c.created_at|date:"d M Y H:i" }}</span>
+      <p>{{ c.body|linebreaksbr }}</p>
+    </div>
+  {% empty %}
+    <p class="muted">No replies yet.</p>
+  {% endfor %}
+  <form method="post">{% csrf_token %}
+    <input type="hidden" name="action" value="comment">
+    {{ comment_form.as_p }}
+    <button type="submit" class="btn">Reply</button>
+  </form>
+</section>
+{% endblock %}

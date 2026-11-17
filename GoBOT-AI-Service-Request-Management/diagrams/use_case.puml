@@ -1,0 +1,29 @@
+@startuml
+left to right direction
+actor Customer
+actor "Support Agent" as Agent
+actor Admin
+rectangle "GoBOT Service Request Management" {
+  usecase "Sign up / Log in" as UC1
+  usecase "Submit request" as UC2
+  usecase "View own requests" as UC3
+  usecase "Reply to request" as UC4
+  usecase "View all requests" as UC5
+  usecase "Update status / assign" as UC6
+  usecase "Receive notifications" as UC7
+  usecase "AI triage (category, priority)" as UC8
+  usecase "Manage users & roles" as UC9
+}
+Customer --> UC1
+Customer --> UC2
+Customer --> UC3
+Customer --> UC4
+Customer --> UC7
+Agent --> UC5
+Agent --> UC4
+Agent --> UC6
+Agent --> UC7
+Admin --> UC9
+Admin --|> Agent
+UC2 ..> UC8 : <<include>>
+@enduml

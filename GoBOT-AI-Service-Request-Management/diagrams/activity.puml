@@ -1,0 +1,14 @@
+@startuml
+start
+:Customer submits request;
+:GoBOT triage assigns category & priority;
+:Agents notified;
+:Agent reviews and assigns;
+repeat
+  :Agent / customer exchange replies;
+  :Status updated -> customer notified;
+repeat while (Resolved?) is (no)
+->yes;
+:Close request;
+stop
+@enduml
