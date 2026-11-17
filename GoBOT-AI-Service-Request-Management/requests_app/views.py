@@ -1,97 +1,223 @@
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.core.exceptions import PermissionDenied
-from django.shortcuts import get_object_or_404, redirect, render
 
-from accounts.models import User
-from notifications.services import notify, notify_many
+from django.shortcuts import render
+from django.http import HttpResponse
 
-from . import ai
-from .forms import CommentForm, ServiceRequestForm, StaffUpdateForm
-from .models import ServiceRequest
+def home(request):
+    html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>GoBOT - AI Service Request Management</title>
 
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
 
-def _can_view(user, req: ServiceRequest) -> bool:
-    return user.is_agent or req.requester_id == user.id
+            body {
+                font-family: Arial, sans-serif;
+                background: #f1f5f9;
+                color: #1e293b;
+            }
 
+            header {
+                background: #172554;
+                color: white;
+                padding: 22px 8%;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
 
-@login_required
-def request_list(request):
-    qs = ServiceRequest.objects.select_related("requester", "assigned_to")
-    if not request.user.is_agent:
-        qs = qs.filter(requester=request.user)
+            header h2 {
+                font-size: 27px;
+            }
 
-    status = request.GET.get("status", "")
-    if status in ServiceRequest.Status.values:
-        qs = qs.filter(status=status)
+            nav a {
+                color: white;
+                text-decoration: none;
+                margin-left: 22px;
+                font-size: 15px;
+            }
 
-    return render(
-        request,
-        "requests_app/list.html",
-        {"requests": qs, "status_choices": ServiceRequest.Status.choices, "current_status": status},
-    )
+            .hero {
+                text-align: center;
+                padding: 85px 20px;
+                background: linear-gradient(135deg, #dbeafe, #eff6ff);
+            }
 
+            .hero h1 {
+                font-size: 42px;
+                color: #172554;
+                margin-bottom: 20px;
+            }
 
-@login_required
-def request_create(request):
-    form = ServiceRequestForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        obj = form.save(commit=False)
-        obj.requester = request.user
-        result = ai.triage(obj.title, obj.description)
-        obj.category = result["category"]
-        obj.priority = result["priority"]
-        obj.ai_summary = result["summary"]
-        obj.ai_suggested = True
-        obj.save()
+            .hero p {
+                font-size: 18px;
+                color: #475569;
+                margin-bottom: 28px;
+                line-height: 1.7;
+            }
 
-        agents = User.objects.filter(role__in=[User.Role.AGENT, User.Role.ADMIN])
-        notify_many(agents, f"New {obj.get_priority_display()} request: {obj.title}", obj.get_absolute_url())
-        messages.success(request, "Request submitted. GoBOT categorised it for the support team.")
-        return redirect(obj)
-    return render(request, "requests_app/form.html", {"form": form})
+            .btn {
+                display: inline-block;
+                background: #2563eb;
+                color: white;
+                padding: 14px 28px;
+                border-radius: 8px;
+                text-decoration: none;
+                border: none;
+                cursor: pointer;
+                font-size: 16px;
+            }
 
+            .btn:hover {
+                background: #1d4ed8;
+            }
 
-@login_required
-def request_detail(request, pk):
-    obj = get_object_or_404(ServiceRequest.objects.select_related("requester", "assigned_to"), pk=pk)
-    if not _can_view(request.user, obj):
-        raise PermissionDenied
+            .services {
+                padding: 55px 8%;
+                text-align: center;
+            }
 
-    comment_form = CommentForm()
-    update_form = StaffUpdateForm(instance=obj) if request.user.is_agent else None
+            .services h2 {
+                font-size: 30px;
+                margin-bottom: 35px;
+                color: #172554;
+            }
 
-    if request.method == "POST":
-        action = request.POST.get("action")
+            .cards {
+                display: flex;
+                justify-content: center;
+                flex-wrap: wrap;
+                gap: 25px;
+            }
 
-        if action == "comment":
-            comment_form = CommentForm(request.POST)
-            if comment_form.is_valid():
-                comment = comment_form.save(commit=False)
-                comment.request = obj
-                comment.author = request.user
-                comment.save()
-                recipient = obj.requester if request.user.is_agent else obj.assigned_to
-                if recipient and recipient != request.user:
-                    notify(recipient, f"New reply on #{obj.pk}: {obj.title}", obj.get_absolute_url())
-                return redirect(obj)
+            .card {
+                background: white;
+                padding: 30px;
+                width: 270px;
+                border-radius: 12px;
+                box-shadow: 0 4px 12px #00000012;
+            }
 
-        elif action == "update" and request.user.is_agent:
-            old_status, old_assignee = obj.status, obj.assigned_to_id
-            update_form = StaffUpdateForm(request.POST, instance=obj)
-            if update_form.is_valid():
-                obj = update_form.save()
-                if obj.status != old_status:
-                    notify(obj.requester, f"Your request #{obj.pk} is now {obj.get_status_display()}.", obj.get_absolute_url())
-                if obj.assigned_to_id and obj.assigned_to_id != old_assignee and obj.assigned_to != request.user:
-                    notify(obj.assigned_to, f"You were assigned request #{obj.pk}: {obj.title}", obj.get_absolute_url())
-                messages.success(request, "Request updated.")
-                return redirect(obj)
-        else:
-            raise PermissionDenied
+            .card h3 {
+                color: #2563eb;
+                margin-bottom: 15px;
+            }
 
-    return render(
-        request,
-        "requests_app/detail.html",
-        {"req": obj, "comments": obj.comments.select_related("author"), "comment_form": comment_form, "update_form": update_form},
-    )
+            .card p {
+                color: #64748b;
+                line-height: 1.6;
+            }
+
+            footer {
+                background: #172554;
+                color: white;
+                text-align: center;
+                padding: 22px;
+                margin-top: 40px;
+            }
+
+            @media(max-width: 600px) {
+                header {
+                    flex-direction: column;
+                    gap: 15px;
+                }
+
+                nav a {
+                    margin: 7px;
+                }
+
+                .hero h1 {
+                    font-size: 30px;
+                }
+            }
+        </style>
+    </head>
+
+    <body>
+
+        <header>
+            <h2>GoBOT</h2>
+
+            <nav>
+                <a href="/">Home</a>
+                <a href="#services">Services</a>
+                <a href="#about">About</a>
+            </nav>
+        </header>
+
+        <section class="hero">
+            <h1>Welcome to GoBOT!</h1>
+
+            <p>
+                AI-Powered Service Request Management System
+                <br>
+                Manage your service requests easily, quickly and smartly.
+            </p>
+
+            <button class="btn" onclick="showMessage()">
+                Get Started
+            </button>
+        </section>
+
+        <section class="services" id="services">
+            <h2>Our Features</h2>
+
+            <div class="cards">
+
+                <div class="card">
+                    <h3>Submit Request</h3>
+                    <p>
+                        Submit your service requests
+                        easily through our platform.
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h3>Track Requests</h3>
+                    <p>
+                        Check the status of your
+                        submitted service requests.
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h3>AI Assistance</h3>
+                    <p>
+                        Get smart assistance for
+                        your service-related questions.
+                    </p>
+                </div>
+
+            </div>
+        </section>
+
+        <section class="services" id="about">
+            <h2>About GoBOT</h2>
+
+            <p>
+                GoBOT is an AI-based service request
+                management platform designed to make
+                request handling simple and efficient.
+            </p>
+        </section>
+
+        <footer>
+            <p>© 2026 GoBOT - AI Service Request Management System</p>
+        </footer>
+
+        <script>
+            function showMessage() {
+                alert("Welcome to GoBOT! Your smart service platform.");
+            }
+        </script>
+
+    </body>
+    </html>
+    """
+
+    return HttpResponse(html)
